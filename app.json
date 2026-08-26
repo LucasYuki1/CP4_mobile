@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "com.fiap.mobile",
+    "slug": "com.fiap.mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "chat",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fiap.cp.mobile",
+      "usesAppleSignIn": true,
+      "googleServicesFile": "./GoogleService-Info.plist"
+    },
+    "android": {
+      "package": "com.fiap.cp.mobile",
+      "googleServicesFile": "./google-services.json",
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": [
+      "expo-apple-authentication",
+      [
+        "@react-native-google-signin/google-signin",
+        { "iosUrlScheme": "com.googleusercontent.apps.1:537149263592:ios:6a5a2c71cf89bc16f2035d" }
+      ]
+    ]
+  }
+}

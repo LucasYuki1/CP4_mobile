@@ -1,0 +1,12 @@
+node_modules/
+.expo/
+dist/
+web-build/
+android/
+ios/
+*.orig.*
+.env
+google-services.json
+GoogleService-Info.plist
+*.p8
+.DS_Store
