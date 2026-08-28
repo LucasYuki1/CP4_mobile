@@ -59,7 +59,8 @@ const MESSAGES: Record<string, string> = {
     'Este e-mail ja esta vinculado a outro provedor. Entre pelo provedor original.',
   'auth/operation-not-allowed': 'Provedor nao habilitado no Console do Firebase.',
   'sign-in/cancelled': 'Login cancelado.',
-  'sign-in/no-id-token': 'O provedor nao devolveu um token de identidade.',
+  'sign-in/no-id-token':
+    'O Google concluiu o login mas nao emitiu o token de identidade. Verifique o ID do cliente da Web no Firebase.',
   'sign-in/apple-unavailable': 'Entrar com Apple esta disponivel apenas no iOS 13 ou superior.',
   'sign-in/google-not-configured':
     'Login com Google indisponivel: o app foi compilado sem o ID do cliente da Web. Habilite o provedor Google no Firebase e preencha EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID.',
@@ -122,13 +123,36 @@ export async function signInWithEmail(email: string, password: string): Promise<
   }
 }
 
-/** O formato da resposta do Google Sign-In mudou entre versoes maiores. */
-function extractGoogleIdToken(response: unknown): string | null {
-  if (typeof response !== 'object' || response === null) return null;
-  const root = response as { idToken?: unknown; data?: { idToken?: unknown } };
-  if (typeof root.idToken === 'string') return root.idToken;
-  if (root.data && typeof root.data.idToken === 'string') return root.data.idToken;
-  return null;
+/**
+ * O formato da resposta do Google Sign-In mudou entre versoes maiores.
+ *
+ * Ate a v12 a biblioteca lancava SIGN_IN_CANCELLED quando a pessoa desistia.
+ * Da v13 em diante ela *retorna* um envelope discriminado, e cancelar virou
+ * { type: 'cancelled', data: null }. Tratar isso como "sem idToken" faria o
+ * app acusar falha do provedor quando o usuario apenas fechou o seletor de
+ * contas, entao o cancelamento e reconhecido explicitamente.
+ */
+type GoogleSignInOutcome =
+  | { kind: 'token'; idToken: string }
+  | { kind: 'cancelled' }
+  | { kind: 'no-token' };
+
+function readGoogleSignInResponse(response: unknown): GoogleSignInOutcome {
+  if (typeof response !== 'object' || response === null) return { kind: 'no-token' };
+  const root = response as {
+    type?: unknown;
+    idToken?: unknown;
+    data?: { idToken?: unknown } | null;
+  };
+
+  if (root.type === 'cancelled' || root.type === 'noSavedCredentialFound') {
+    return { kind: 'cancelled' };
+  }
+  if (typeof root.idToken === 'string') return { kind: 'token', idToken: root.idToken };
+  if (root.data && typeof root.data.idToken === 'string') {
+    return { kind: 'token', idToken: root.data.idToken };
+  }
+  return { kind: 'no-token' };
 }
 
 export async function signInWithGoogle(): Promise<User> {
@@ -141,11 +165,16 @@ export async function signInWithGoogle(): Promise<User> {
     }
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     const response: unknown = await GoogleSignin.signIn();
-    const idToken = extractGoogleIdToken(response);
-    if (!idToken) {
+    const outcome = readGoogleSignInResponse(response);
+
+    if (outcome.kind === 'cancelled') {
+      throw new AuthError(MESSAGES['sign-in/cancelled'] ?? 'Login cancelado.', 'sign-in/cancelled');
+    }
+    if (outcome.kind === 'no-token') {
       throw new AuthError(MESSAGES['sign-in/no-id-token'] ?? 'Token ausente.', 'sign-in/no-id-token');
     }
-    const credential = GoogleAuthProvider.credential(idToken);
+
+    const credential = GoogleAuthProvider.credential(outcome.idToken);
     const result = await signInWithCredential(auth, credential);
     await upsertUserProfile(result.user, 'google');
     return result.user;

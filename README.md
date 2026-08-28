@@ -120,6 +120,18 @@ Sem Android SDK na maquina, o APK sai pela nuvem:
 npx eas-cli build --platform android --profile preview
 ```
 
+### APK pronto para instalar
+
+Para avaliar sem compilar nada, o build mais recente esta publicado:
+
+- instalacao direta (abrir no Android):
+  https://expo.dev/artifacts/eas/mCXePPF6IkuNe1YxHyh3W1zWbV3hYG-CeVK2YYcmPf4.apk
+- pagina do build, com QR Code:
+  https://expo.dev/accounts/lucas_yuki/projects/chat-balcao/builds/e4eb0c75-4a8e-4a41-bc38-872949f9d18c
+
+O Android vai pedir permissao para instalar de fonte desconhecida. Artefatos do
+EAS expiram depois de algum tempo; se o link cair, o comando acima gera outro.
+
 Depois do primeiro build, o dia a dia e `npm start` com o app instalado no
 dispositivo.
 
