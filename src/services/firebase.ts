@@ -3,10 +3,20 @@ import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app';
 import * as FirebaseAuth from 'firebase/auth';
 import { getDatabase, type Database } from 'firebase/database';
 
+/**
+ * O .env.example usa marcadores no formato [NOME_DA_VARIAVEL]. Se um deles
+ * sobreviver ate a execucao, o Firebase falha muito mais adiante e com uma
+ * mensagem opaca (URL de banco invalida, projeto inexistente). Barramos aqui,
+ * onde ainda da para dizer exatamente qual campo falta.
+ */
+function isPlaceholder(value: string): boolean {
+  return /^\[.*\]$/.test(value.trim());
+}
+
 function requireEnv(name: string, value: string | undefined): string {
-  if (!value) {
+  if (!value || isPlaceholder(value)) {
     throw new Error(
-      `Variavel de ambiente ${name} ausente. Copie .env.example para .env e preencha os valores do Console do Firebase.`,
+      `Variavel de ambiente ${name} ausente ou nao preenchida. Copie .env.example para .env e preencha os valores do Console do Firebase.`,
     );
   }
   return value;

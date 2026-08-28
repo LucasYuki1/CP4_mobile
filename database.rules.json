@@ -27,7 +27,7 @@
 
     "conversations": {
       "$conversationId": {
-        ".read": "auth != null && data.child('participants').child(auth.uid).exists()",
+        ".read": "auth != null && ($conversationId.beginsWith(auth.uid + '_') || $conversationId.endsWith('_' + auth.uid))",
         ".write": "auth != null && !data.exists() && newData.child('participants').child(auth.uid).exists()",
         ".validate": "newData.hasChildren(['participants', 'createdAt'])",
         "participants": {

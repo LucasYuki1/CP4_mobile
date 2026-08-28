@@ -115,7 +115,7 @@ export function LoginScreen(): React.JSX.Element {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>[NOME_DO_APP]</Text>
+          <Text style={styles.eyebrow}>Balcao</Text>
           <Text style={styles.title}>Dois lados do balcao</Text>
           <Text style={styles.lead}>
             Sua forma de entrar define seu papel: conta com e-mail e senha e vendedor, login
@@ -202,19 +202,25 @@ export function LoginScreen(): React.JSX.Element {
             loading={pending === 'google'}
             disabled={busy}
           />
-          {appleAvailable ? (
-            <PrimaryButton
-              label="Continuar com Apple"
-              onPress={handleApple}
-              variant="outline"
-              loading={pending === 'apple'}
-              disabled={busy}
-            />
-          ) : (
+          {/*
+            O botao fica sempre na tela, e nao apenas no iOS: a Apple nao oferece
+            login nativo em Android, entao fora do iOS ele aparece desabilitado
+            com a razao escrita logo abaixo. Esconder o botao faria parecer que o
+            provedor nao foi implementado.
+          */}
+          <PrimaryButton
+            label="Continuar com Apple"
+            onPress={handleApple}
+            variant="outline"
+            loading={pending === 'apple'}
+            disabled={busy || !appleAvailable}
+          />
+          {!appleAvailable ? (
             <Text style={styles.appleNote}>
-              Entrar com Apple aparece apenas em dispositivos iOS 13 ou superior.
+              Entrar com Apple exige iOS 13 ou superior. Em Android o botao fica
+              desabilitado porque a Apple nao oferece login nativo nesta plataforma.
             </Text>
-          )}
+          ) : null}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

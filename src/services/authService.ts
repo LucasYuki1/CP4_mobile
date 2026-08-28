@@ -17,9 +17,23 @@ import { auth } from './firebase';
 import { upsertUserProfile } from './userService';
 import type { AuthProvider } from '../types/user';
 
+/**
+ * Um marcador nao substituido ([GOOGLE_WEB_CLIENT_ID]) e um valor vazio dao o
+ * mesmo resultado pratico: o Google Sign-In devolve DEVELOPER_ERROR, que nao
+ * diz nada a quem esta usando o app. Detectamos aqui para trocar por uma
+ * mensagem que aponta a causa real.
+ */
+function readClientId(value: string | undefined): string {
+  if (!value || /^\[.*\]$/.test(value.trim())) return '';
+  return value.trim();
+}
+
+const GOOGLE_WEB_CLIENT_ID = readClientId(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
+const GOOGLE_IOS_CLIENT_ID = readClientId(process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID);
+
 GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '',
-  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '',
+  webClientId: GOOGLE_WEB_CLIENT_ID,
+  iosClientId: GOOGLE_IOS_CLIENT_ID,
   offlineAccess: false,
 });
 
@@ -47,6 +61,11 @@ const MESSAGES: Record<string, string> = {
   'sign-in/cancelled': 'Login cancelado.',
   'sign-in/no-id-token': 'O provedor nao devolveu um token de identidade.',
   'sign-in/apple-unavailable': 'Entrar com Apple esta disponivel apenas no iOS 13 ou superior.',
+  'sign-in/google-not-configured':
+    'Login com Google indisponivel: o app foi compilado sem o ID do cliente da Web. Habilite o provedor Google no Firebase e preencha EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID.',
+  'DEVELOPER_ERROR':
+    'O Google recusou a assinatura deste app. Cadastre no Firebase o SHA-1 do certificado que assinou este APK.',
+  '10': 'O Google recusou a assinatura deste app. Cadastre no Firebase o SHA-1 do certificado que assinou este APK.',
 };
 
 /** Converte qualquer erro em AuthError com mensagem em portugues. */
@@ -114,6 +133,12 @@ function extractGoogleIdToken(response: unknown): string | null {
 
 export async function signInWithGoogle(): Promise<User> {
   try {
+    if (GOOGLE_WEB_CLIENT_ID.length === 0) {
+      throw new AuthError(
+        MESSAGES['sign-in/google-not-configured'] ?? 'Login com Google indisponivel.',
+        'sign-in/google-not-configured',
+      );
+    }
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     const response: unknown = await GoogleSignin.signIn();
     const idToken = extractGoogleIdToken(response);

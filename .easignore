@@ -1,0 +1,12 @@
+node_modules/
+.expo/
+dist/
+android/
+ios/
+.git/
+docs/
+tests/
+firebase.json
+.firebaserc
+*.p8
+.DS_Store

@@ -10,3 +10,12 @@ google-services.json
 GoogleService-Info.plist
 *.p8
 .DS_Store
+firebase-debug.log
+database-debug.log
+ui-debug.log
+.firebase/
+
+# Keystore de assinatura do Android - NUNCA versionar
+*.jks
+*.keystore
+credentials.json

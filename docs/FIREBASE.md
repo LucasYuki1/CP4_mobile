@@ -52,7 +52,22 @@ erro que o app trata com mensagem propria.
 2. Escolher a regiao e iniciar em **modo bloqueado**.
 3. Copiar a URL (`https://[PROJECT_ID]-default-rtdb.[REGIAO].firebasedatabase.app`)
    para `EXPO_PUBLIC_FIREBASE_DATABASE_URL`.
-4. Aba **Regras**: colar o conteudo de `database.rules.json` e publicar.
+4. Publicar as regras. Pela CLI (usa o `.firebaserc` que ja aponta para o
+   projeto):
+
+   ```bash
+   npx firebase-tools login
+   npm run deploy:rules
+   ```
+
+   Ou manualmente: aba **Regras**, colar o conteudo de `database.rules.json` e
+   publicar.
+
+Antes de publicar, da para conferir as regras contra o emulador local:
+
+```bash
+npm run test:rules
+```
 
 O que as regras garantem:
 
@@ -68,6 +83,14 @@ O que as regras garantem:
 - os participantes precisam aparecer no proprio `conversationId`, o que impede
   uma terceira pessoa de entrar na conversa.
 
+> A leitura de `conversations/$conversationId` e autorizada comparando o
+> `auth.uid` com o **id do no**, e nao com `data.child('participants')`.
+> `ensureConversation()` faz `get()` antes de criar a conversa: sobre um no
+> inexistente `data` e vazio, a regra baseada em `participants` retorna falso e
+> o banco responde `permission_denied` - nenhuma conversa nova abriria. Como o
+> id e deterministico e a escrita exige que `participants` case com ele, as duas
+> formulacoes protegem o mesmo, mas so a que olha o id funciona no no vazio.
+
 ## 4. Registrar os apps
 
 ### Web (usado pelo Firebase JS SDK)
@@ -77,13 +100,26 @@ O que as regras garantem:
 
 ### Android
 1. **Seus apps > Android**, package `[PACKAGE_NAME_ANDROID]` (o mesmo do `app.json`).
-2. Informe a impressao digital **SHA-1** do certificado de debug:
+2. Informe a impressao digital **SHA-1** do certificado que assina o APK.
+   Sem o SHA-1 correto o Google Sign-In falha com `DEVELOPER_ERROR`.
+
+   Para o build local (`npx expo run:android`), o certificado e o de debug:
    ```bash
    keytool -list -v -alias androiddebugkey \
      -keystore ~/.android/debug.keystore -storepass android -keypass android
    ```
-   Sem o SHA-1 o Google Sign-In falha com `DEVELOPER_ERROR`.
-3. Baixe `google-services.json` para a raiz do projeto.
+
+   **Para o APK gerado no EAS o certificado e outro**: a nuvem assina com um
+   keystore proprio, entao o SHA-1 de debug desta maquina nao vale. Pegue o do
+   EAS e cadastre tambem:
+   ```bash
+   npx eas-cli credentials --platform android
+   ```
+   Um app Android no Firebase aceita varios SHA-1: cadastre os dois.
+3. Baixe `google-services.json` para a raiz do projeto **depois** de habilitar o
+   provedor Google e cadastrar o SHA-1. Se o arquivo vier com
+   `"oauth_client": []`, ele foi baixado cedo demais e o login com Google nao
+   vai funcionar.
 
 ### iOS
 1. **Seus apps > iOS**, bundle `[BUNDLE_IDENTIFIER_IOS]`.
@@ -106,6 +142,8 @@ npx expo run:android
 - [ ] Tres provedores habilitados no Authentication
 - [ ] Regras publicadas e banco fora do modo aberto
 - [ ] `.env` preenchido (o arquivo esta no `.gitignore`)
-- [ ] `google-services.json` e `GoogleService-Info.plist` na raiz
-- [ ] SHA-1 de debug cadastrado no app Android
+- [ ] `google-services.json` com `oauth_client` **nao vazio**, na raiz
+- [ ] `GoogleService-Info.plist` com `CLIENT_ID` e `REVERSED_CLIENT_ID`, na raiz
+- [ ] SHA-1 do keystore do EAS cadastrado no app Android
 - [ ] `usesAppleSignIn: true` no `app.json`
+- [ ] `npm run test:rules` passando (25/25)

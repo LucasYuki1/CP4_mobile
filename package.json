@@ -1,5 +1,5 @@
 {
-  "name": "[NOME_DO_PROJETO]",
+  "name": "balcao",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
@@ -8,7 +8,9 @@
     "ios": "expo run:ios",
     "prebuild": "expo prebuild --clean",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test:rules": "npx --yes --package firebase-tools@14 firebase emulators:exec --only database --project demo-balcao \"node tests/rules/rules.test.mjs\"",
+    "deploy:rules": "npx --yes --package firebase-tools@14 firebase deploy --only database"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -19,6 +21,7 @@
     "expo-apple-authentication": "~55.0.0",
     "expo-crypto": "~55.0.0",
     "expo-status-bar": "~55.0.0",
+    "expo-system-ui": "~55.0.22",
     "firebase": "^12.4.0",
     "react": "19.2.0",
     "react-native": "0.83.2",
@@ -26,6 +29,7 @@
     "react-native-screens": "^4.16.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@types/react": "~19.2.0",
     "typescript": "~5.9.2"
   },

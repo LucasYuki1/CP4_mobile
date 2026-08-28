@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "com.fiap.mobile",
-    "slug": "com.fiap.mobile",
+    "name": "Balcao",
+    "slug": "chat-balcao",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "chat",
@@ -9,21 +9,27 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fiap.cp.mobile",
+      "bundleIdentifier": "com.fiap.mobile",
       "usesAppleSignIn": true,
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.fiap.cp.mobile",
-      "googleServicesFile": "./google-services.json",
-      "edgeToEdgeEnabled": true
+      "googleServicesFile": "./google-services.json"
     },
     "plugins": [
       "expo-apple-authentication",
       [
         "@react-native-google-signin/google-signin",
-        { "iosUrlScheme": "com.googleusercontent.apps.1:537149263592:ios:6a5a2c71cf89bc16f2035d" }
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.537149263592-PREENCHER"
+        }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c05ffba5-30ef-4ed0-8d11-619cb1d82b89"
+      }
+    }
   }
 }
