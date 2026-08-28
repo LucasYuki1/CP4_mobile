@@ -268,9 +268,13 @@ O emulador exige Java instalado.
 
 ## Prints
 
+Salve os arquivos em `docs/prints/` com exatamente estes nomes: `login.png`,
+`contatos.png` e `chat.png`.
+
+
 | Login | Contatos | Conversa |
 | --- | --- | --- |
-| ![Login](docs/prints/[ARQUIVO_PRINT_LOGIN].png) | ![Contatos](docs/prints/[ARQUIVO_PRINT_CONTATOS].png) | ![Conversa](docs/prints/[ARQUIVO_PRINT_CHAT].png) |
+| ![Login](docs/prints/login.png) | ![Contatos](docs/prints/contatos.png) | ![Conversa](docs/prints/chat.png) |
 
 ## Repositorio
 
