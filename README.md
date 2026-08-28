@@ -280,13 +280,13 @@ O emulador exige Java instalado.
 
 ## Prints
 
-Salve os arquivos em `docs/prints/` com exatamente estes nomes: `login.png`,
-`contatos.png` e `chat.png`.
-
-
 | Login | Contatos | Conversa |
 | --- | --- | --- |
-| ![Login](docs/prints/login.png) | ![Contatos](docs/prints/contatos.png) | ![Conversa](docs/prints/chat.png) |
+| ![Login](images/tela_login.jpeg) | ![Contatos](images/vendedor.jpeg) | ![Conversa](images/comprador.jpeg) |
+
+Da esquerda para a direita: a tela de entrada com os dois lados do balcao e os
+tres provedores; a lista do vendedor buscando participantes no lado oposto; e a
+conversa aberta entre vendedor e comprador, no estado inicial.
 
 ## Repositorio
 
