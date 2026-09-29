@@ -1,5 +1,4 @@
 import {
-  get,
   limitToLast,
   onChildAdded,
   onChildChanged,
@@ -11,71 +10,132 @@ import {
   set,
   type DataSnapshot,
 } from 'firebase/database';
+import {
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  query as firestoreQuery,
+  setDoc,
+  where,
+} from 'firebase/firestore';
 
-import { database } from './firebase';
-import { buildConversationId, participantsOf } from '../utils/chatRules';
+import { callApi } from './apiClient';
+import { database, firestore } from './firebase';
+import { buildDirectConversationId, participantsOf } from '../utils/conversationId';
+import { AppError } from '../utils/errors';
 import type {
   ChatMessage,
-  Conversation,
-  ConversationRecord,
+  ConversationType,
+  DirectConversation,
+  DirectConversationDocument,
   MessageDraft,
   MessageRecord,
+  MessageTarget,
 } from '../types/chat';
 
-const CONVERSATIONS_PATH = 'conversations';
+const DIRECT_CONVERSATIONS = 'directConversations';
 const MESSAGES_PATH = 'messages';
 const MESSAGE_PAGE_SIZE = 200;
+export const MAX_MESSAGE_LENGTH = 1000;
 
 /**
- * Cria a conversa se ela ainda nao existir. Como o id e deterministico,
- * os dois participantes convergem para o mesmo no e a operacao e idempotente:
- * nao ha risco de duplicar conversa se ambos abrirem o chat ao mesmo tempo.
+ * Cria a conversa individual se ela ainda nao existir. O id deterministico
+ * torna a operacao idempotente: os dois lados convergem para o mesmo documento.
  */
-export async function ensureConversation(
+export async function ensureDirectConversation(
   currentUid: string,
   otherUid: string,
-): Promise<Conversation> {
-  const id = buildConversationId(currentUid, otherUid);
-  const conversationRef = ref(database, `${CONVERSATIONS_PATH}/${id}`);
-  const snapshot = await get(conversationRef);
+): Promise<DirectConversation> {
+  const id = buildDirectConversationId(currentUid, otherUid);
+  const conversationRef = doc(firestore, DIRECT_CONVERSATIONS, id);
+  const snapshot = await getDoc(conversationRef);
 
   if (snapshot.exists()) {
-    const raw = snapshot.val() as Partial<ConversationRecord>;
+    const raw = snapshot.data() as Partial<DirectConversationDocument>;
     return {
       id,
+      type: 'direct',
       participants: participantsOf(id),
-      createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : Date.now(),
+      createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : 0,
     };
   }
 
-  const createdAt = Date.now();
-  const record: ConversationRecord = {
-    participants: { [currentUid]: true, [otherUid]: true },
-    createdAt,
+  const record: DirectConversationDocument = {
+    participantIds: participantsOf(id),
+    createdAt: Date.now(),
   };
-  await set(conversationRef, record);
+  await setDoc(conversationRef, record);
+  return { id, type: 'direct', participants: record.participantIds, createdAt: record.createdAt };
+}
 
-  return { id, participants: participantsOf(id), createdAt };
+/** Escuta as conversas individuais do usuario (Firestore). */
+export function listenToDirectConversations(
+  uid: string,
+  onConversations: (conversations: DirectConversation[]) => void,
+  onError: (error: Error) => void,
+): () => void {
+  const conversationsQuery = firestoreQuery(
+    collection(firestore, DIRECT_CONVERSATIONS),
+    where('participantIds', 'array-contains', uid),
+  );
+  return onSnapshot(
+    conversationsQuery,
+    (snapshot) => {
+      const conversations = snapshot.docs.map((item): DirectConversation => {
+        const raw = item.data() as Partial<DirectConversationDocument>;
+        return {
+          id: item.id,
+          type: 'direct',
+          participants: participantsOf(item.id),
+          createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : 0,
+        };
+      });
+      onConversations(conversations);
+    },
+    (error) => onError(error),
+  );
+}
+
+function readTarget(raw: unknown): MessageTarget {
+  if (typeof raw === 'object' && raw !== null) {
+    const target = raw as { type?: unknown; memberId?: unknown };
+    if (target.type === 'member' && typeof target.memberId === 'string') {
+      return { type: 'member', memberId: target.memberId };
+    }
+  }
+  return { type: 'conversation' };
+}
+
+function readMentions(raw: unknown): string[] {
+  if (typeof raw !== 'object' || raw === null) return [];
+  return Object.keys(raw);
+}
+
+function isConversationType(value: unknown): value is ConversationType {
+  return value === 'direct' || value === 'group';
 }
 
 function toChatMessage(conversationId: string, snapshot: DataSnapshot): ChatMessage | null {
   const raw: unknown = snapshot.val();
   if (typeof raw !== 'object' || raw === null || !snapshot.key) return null;
-  const record = raw as Partial<MessageRecord>;
+  const record = raw as Partial<Record<keyof MessageRecord, unknown>>;
   if (
     typeof record.senderId !== 'string' ||
-    typeof record.receiverId !== 'string' ||
-    typeof record.text !== 'string'
+    typeof record.text !== 'string' ||
+    !isConversationType(record.conversationType)
   ) {
     return null;
   }
   return {
     id: snapshot.key,
     conversationId,
+    conversationType: record.conversationType,
     senderId: record.senderId,
-    receiverId: record.receiverId,
     text: record.text,
-    // createdAt chega null no eco local antes do servidor resolver o timestamp.
+    target: readTarget(record.target),
+    mentionedUserIds: readMentions(record.mentionedUserIds),
+    // createdAt chega como estimativa local antes do servidor resolver o timestamp.
     createdAt: typeof record.createdAt === 'number' ? record.createdAt : Date.now(),
   };
 }
@@ -87,17 +147,12 @@ export type MessageListeners = {
 };
 
 /**
- * Escuta em tempo real as mensagens da conversa.
- *
- * Usamos onChildAdded para o fluxo incremental (mensagem nova chega e e
- * acrescentada a lista) e onChildChanged porque serverTimestamp() dispara um
- * segundo evento quando o servidor substitui a estimativa local pelo horario
- * definitivo. Retorna a funcao de limpeza que remove os dois listeners.
+ * Escuta em tempo real as mensagens da conversa no Realtime Database.
+ * onChildAdded entrega cada mensagem nova; onChildChanged cobre a troca da
+ * estimativa local de serverTimestamp() pelo horario definitivo do servidor.
+ * Retorna a funcao que remove os dois listeners.
  */
-export function listenToMessages(
-  conversationId: string,
-  listeners: MessageListeners,
-): () => void {
+export function listenToMessages(conversationId: string, listeners: MessageListeners): () => void {
   const messagesQuery = query(
     ref(database, `${MESSAGES_PATH}/${conversationId}`),
     orderByChild('createdAt'),
@@ -128,24 +183,50 @@ export function listenToMessages(
   };
 }
 
+/** Persiste a mensagem no Realtime Database e devolve o id gerado. */
 export async function sendMessage(draft: MessageDraft): Promise<string> {
   const text = draft.text.trim();
-  if (text.length === 0) {
-    throw new Error('A mensagem nao pode ser vazia.');
+  if (text.length === 0) throw new AppError('A mensagem nao pode ser vazia.');
+  if (text.length > MAX_MESSAGE_LENGTH) {
+    throw new AppError(`A mensagem pode ter no maximo ${MAX_MESSAGE_LENGTH} caracteres.`);
   }
 
-  const messagesRef = ref(database, `${MESSAGES_PATH}/${draft.conversationId}`);
-  const messageRef = push(messagesRef);
-  if (!messageRef.key) {
-    throw new Error('Nao foi possivel gerar o identificador da mensagem.');
-  }
+  const messageRef = push(ref(database, `${MESSAGES_PATH}/${draft.conversationId}`));
+  if (!messageRef.key) throw new AppError('Nao foi possivel gerar o identificador da mensagem.');
 
-  await set(messageRef, {
+  const mentions = Array.from(new Set(draft.mentionedUserIds)).filter(
+    (uid) => uid !== draft.senderId,
+  );
+  const record: MessageRecord = {
+    conversationType: draft.conversationType,
     senderId: draft.senderId,
-    receiverId: draft.receiverId,
     text,
+    target: draft.target,
     createdAt: serverTimestamp(),
-  });
-
+    ...(mentions.length > 0
+      ? { mentionedUserIds: Object.fromEntries(mentions.map((uid): [string, true] => [uid, true])) }
+      : {}),
+  };
+  await set(messageRef, record);
   return messageRef.key;
+}
+
+export type PushDispatchResult = {
+  status: 'sent' | 'duplicate' | 'skipped';
+  recipients: number;
+};
+
+/**
+ * Pede a API que dispare o push da mensagem ja persistida. O app envia so os
+ * ids: a API confere mensagem, remetente, participantes e politica no Firebase
+ * e calcula os destinatarios no servidor.
+ */
+export function requestMessageNotification(
+  conversationId: string,
+  messageId: string,
+): Promise<PushDispatchResult> {
+  return callApi<PushDispatchResult>('/notifications/messages', {
+    method: 'POST',
+    body: { conversationId, messageId },
+  });
 }

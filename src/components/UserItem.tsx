@@ -1,68 +1,86 @@
-import React, { useCallback } from 'react';
+import React, { memo, useCallback } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, roleColor, spacing, typography } from '../theme';
-import { PROVIDER_LABEL, ROLE_HINT, ROLE_LABEL, roleOf } from '../utils/chatRules';
-import type { ChatUser } from '../types/user';
+import { Avatar } from './Avatar';
+import { colors, radius, spacing, typography } from '../theme';
+import type { PublicProfile } from '../types/user';
 
 export type UserItemProps = {
-  user: ChatUser;
-  onSelect: (user: ChatUser) => void;
+  profile: PublicProfile;
+  onPress: (profile: PublicProfile) => void;
+  /** Modo de selecao de integrantes: mostra a caixa de marcacao. */
+  selected?: boolean;
+  disabled?: boolean;
+  caption?: string;
 };
 
-/**
- * Etiqueta de balcao: a faixa lateral colorida e o rotulo em caixa alta
- * dizem, de relance, de que lado do marketplace a pessoa esta.
- */
-export function UserItem({ user, onSelect }: UserItemProps): React.JSX.Element {
-  const role = roleOf(user.provider);
-  const palette = roleColor[role];
-
-  const handlePress = useCallback(() => onSelect(user), [onSelect, user]);
+function UserItemComponent({
+  profile,
+  onPress,
+  selected,
+  disabled = false,
+  caption,
+}: UserItemProps): React.JSX.Element {
+  const handlePress = useCallback(() => onPress(profile), [onPress, profile]);
+  const selectable = selected !== undefined;
 
   return (
     <Pressable
       onPress={handlePress}
-      accessibilityRole="button"
-      accessibilityLabel={`Negociar com ${user.name}, ${ROLE_LABEL[role]}`}
-      style={({ pressed }) => [styles.card, pressed ? styles.pressed : null]}
+      disabled={disabled}
+      accessibilityRole={selectable ? 'checkbox' : 'button'}
+      accessibilityState={selectable ? { checked: selected, disabled } : { disabled }}
+      style={({ pressed }) => [
+        styles.card,
+        selected ? styles.selected : null,
+        disabled ? styles.disabled : null,
+        pressed ? styles.pressed : null,
+      ]}
     >
-      <View style={[styles.stripe, { backgroundColor: palette.strong }]} />
+      <Avatar uri={profile.photoUrl} name={profile.name} />
       <View style={styles.content}>
-        <Text style={[styles.role, { color: palette.strong }]}>{ROLE_LABEL[role]}</Text>
         <Text style={styles.name} numberOfLines={1}>
-          {user.name}
+          {profile.name}
         </Text>
-        <Text style={styles.hint} numberOfLines={1}>
-          {ROLE_HINT[role]} · entrou com {PROVIDER_LABEL[user.provider]}
-        </Text>
+        {caption ? <Text style={styles.caption}>{caption}</Text> : null}
       </View>
-      <View style={[styles.punch, { borderColor: palette.strong }]} />
+      {selectable ? (
+        <View style={[styles.box, selected ? styles.boxOn : null]}>
+          {selected ? <Text style={styles.check}>✓</Text> : null}
+        </View>
+      ) : null}
     </Pressable>
   );
 }
+
+export const UserItem = memo(UserItemComponent);
 
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.md,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.hairline,
+    padding: spacing.md,
   },
+  selected: { borderColor: colors.group, backgroundColor: colors.groupSoft },
+  disabled: { opacity: 0.45 },
   pressed: { opacity: 0.9 },
-  stripe: { width: 6, alignSelf: 'stretch' },
-  content: { flex: 1, paddingVertical: spacing.lg, paddingHorizontal: spacing.lg, gap: 2 },
-  role: { ...typography.eyebrow },
+  content: { flex: 1, gap: 2 },
   name: { ...typography.subtitle, color: colors.ink },
-  hint: { ...typography.caption, color: colors.muted },
-  punch: {
-    width: 14,
-    height: 14,
-    borderRadius: radius.pill,
+  caption: { ...typography.caption, color: colors.muted },
+  box: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
     borderWidth: 2,
-    marginRight: spacing.lg,
+    borderColor: colors.hairline,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  boxOn: { borderColor: colors.group, backgroundColor: colors.group },
+  check: { color: colors.surface, fontWeight: '700' },
 });

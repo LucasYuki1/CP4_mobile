@@ -10,3 +10,4 @@ firebase.json
 .firebaserc
 *.p8
 .DS_Store
+server/

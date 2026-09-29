@@ -1,42 +1,48 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app';
+import { getApp, getApps, initializeApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import * as FirebaseAuth from 'firebase/auth';
 import { getDatabase, type Database } from 'firebase/database';
+import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
+
+import rawConfig from '../../firebaseConfig.json';
+
+const REQUIRED_KEYS = [
+  'apiKey',
+  'authDomain',
+  'databaseURL',
+  'projectId',
+  'storageBucket',
+  'messagingSenderId',
+  'appId',
+] as const;
+
+type RequiredKey = (typeof REQUIRED_KEYS)[number];
+type ClientConfig = Record<RequiredKey, string>;
 
 /**
- * O .env.example usa marcadores no formato [NOME_DA_VARIAVEL]. Se um deles
- * sobreviver ate a execucao, o Firebase falha muito mais adiante e com uma
- * mensagem opaca (URL de banco invalida, projeto inexistente). Barramos aqui,
- * onde ainda da para dizer exatamente qual campo falta.
+ * firebaseConfig.json fica versionado na raiz, como pede o enunciado, e contem
+ * apenas a configuracao do SDK cliente. Um campo ausente ou ainda com o
+ * marcador PREENCHER faria o Firebase falhar muito depois com erro opaco;
+ * barramos aqui dizendo exatamente qual campo falta.
  */
-function isPlaceholder(value: string): boolean {
-  return /^\[.*\]$/.test(value.trim());
+function readConfig(source: Record<string, unknown>): ClientConfig {
+  const entries = REQUIRED_KEYS.map((key): [RequiredKey, string] => {
+    const value = source[key];
+    if (typeof value !== 'string' || value.length === 0 || value.startsWith('PREENCHER')) {
+      throw new Error(`firebaseConfig.json: o campo "${key}" nao foi preenchido.`);
+    }
+    return [key, value];
+  });
+  return Object.fromEntries(entries) as ClientConfig;
 }
 
-function requireEnv(name: string, value: string | undefined): string {
-  if (!value || isPlaceholder(value)) {
-    throw new Error(
-      `Variavel de ambiente ${name} ausente ou nao preenchida. Copie .env.example para .env e preencha os valores do Console do Firebase.`,
-    );
-  }
-  return value;
-}
-
-const firebaseConfig = {
-  apiKey: requireEnv('EXPO_PUBLIC_FIREBASE_API_KEY', process.env.EXPO_PUBLIC_FIREBASE_API_KEY),
-  authDomain: requireEnv('EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN', process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN),
-  databaseURL: requireEnv('EXPO_PUBLIC_FIREBASE_DATABASE_URL', process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL),
-  projectId: requireEnv('EXPO_PUBLIC_FIREBASE_PROJECT_ID', process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID),
-  storageBucket: requireEnv('EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET', process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET),
-  messagingSenderId: requireEnv('EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID', process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID),
-  appId: requireEnv('EXPO_PUBLIC_FIREBASE_APP_ID', process.env.EXPO_PUBLIC_FIREBASE_APP_ID),
-};
+const firebaseConfig: FirebaseOptions = readConfig(rawConfig);
 
 /**
  * O nome do export de persistencia para React Native mudou entre versoes do
- * firebase-js-sdk (getReactNativePersistence -> reactNativeLocalPersistence) e
- * os tipos publicos nem sempre acompanham. Resolvemos em tempo de execucao com
- * um contrato explicito via `unknown` (nunca `any`), preservando a tipagem.
+ * firebase-js-sdk e os tipos publicos nem sempre acompanham. Resolvemos em
+ * tempo de execucao com um contrato explicito via `unknown` (nunca `any`).
  */
 type ReactNativePersistenceExports = {
   reactNativeLocalPersistence?: FirebaseAuth.Persistence;
@@ -75,4 +81,6 @@ try {
 
 export const auth: FirebaseAuth.Auth = authInstance;
 export const database: Database = getDatabase(app);
+export const firestore: Firestore = getFirestore(app);
+export const storage: FirebaseStorage = getStorage(app);
 export { app };

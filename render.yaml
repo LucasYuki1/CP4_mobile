@@ -1,0 +1,23 @@
+# Blueprint do Render para a API de notificacoes (server/).
+# Os valores secretos (sync: false) sao preenchidos no painel do Render,
+# nunca neste arquivo.
+services:
+  - type: web
+    name: chat-firebase-api
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: FIREBASE_DATABASE_URL
+        sync: false
