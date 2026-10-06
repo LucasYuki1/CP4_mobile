@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Balcao",
+    "name": "Chat Firebase",
     "slug": "chat-balcao",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "scheme": "chat",
     "userInterfaceStyle": "light",
@@ -10,19 +10,30 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.fiap.mobile",
-      "usesAppleSignIn": true,
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
       "package": "com.fiap.cp.mobile",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "permissions": ["POST_NOTIFICATIONS"]
+    },
+    "notification": {
+      "androidMode": "default"
     },
     "plugins": [
-      "expo-apple-authentication",
       [
-        "@react-native-google-signin/google-signin",
+        "expo-notifications",
         {
-          "iosUrlScheme": "com.googleusercontent.apps.537149263592-PREENCHER"
+          "color": "#2F6B4F",
+          "defaultChannel": "messages"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O app acessa suas fotos para voce escolher a foto de perfil ou do grupo."
         }
       ]
     ],

@@ -1,47 +1,53 @@
 import React, { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, roleColor, spacing, typography } from '../theme';
-import { ROLE_LABEL } from '../utils/chatRules';
-import type { ChatMessage } from '../types/chat';
-import type { MarketRole } from '../types/user';
+import { colors, kindColor, radius, spacing, typography } from '../theme';
+import type { ChatMessage, ConversationType } from '../types/chat';
 
 export type ChatBubbleProps = {
   message: ChatMessage;
   isMine: boolean;
-  senderRole: MarketRole;
+  conversationType: ConversationType;
+  authorName: string;
+  /** Rotulo "para Fulano" quando a mensagem de grupo e direcionada. */
+  targetLabel: string | null;
+  mentionsMe: boolean;
 };
 
 function formatTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return new Date(timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
-/**
- * A cor do balao vem do papel de quem enviou, nao de "minha/sua".
- * Vendedor sempre jade, comprador sempre cobalto. O alinhamento continua
- * separando enviada (direita) de recebida (esquerda).
- */
-function ChatBubbleComponent({ message, isMine, senderRole }: ChatBubbleProps): React.JSX.Element {
-  const palette = roleColor[senderRole];
+function ChatBubbleComponent({
+  message,
+  isMine,
+  conversationType,
+  authorName,
+  targetLabel,
+  mentionsMe,
+}: ChatBubbleProps): React.JSX.Element {
   const time = useMemo(() => formatTime(message.createdAt), [message.createdAt]);
+  const palette = kindColor[conversationType];
 
   return (
     <View style={[styles.row, isMine ? styles.rowMine : styles.rowTheirs]}>
       <View
         style={[
           styles.bubble,
-          isMine ? styles.bubbleMine : styles.bubbleTheirs,
-          { backgroundColor: palette.soft, borderColor: palette.strong },
+          isMine
+            ? styles.bubbleMine
+            : [styles.bubbleTheirs, { backgroundColor: palette.soft, borderColor: palette.strong }],
+          mentionsMe ? styles.mention : null,
         ]}
       >
-        {!isMine ? (
-          <Text style={[styles.author, { color: palette.strong }]}>{ROLE_LABEL[senderRole]}</Text>
+        {!isMine && conversationType === 'group' ? (
+          <Text style={[styles.author, { color: palette.strong }]}>{authorName}</Text>
         ) : null}
-        <Text style={styles.text}>{message.text}</Text>
-        <Text style={styles.time}>{time}</Text>
+        {targetLabel ? (
+          <Text style={[styles.target, isMine ? styles.textMine : null]}>{targetLabel}</Text>
+        ) : null}
+        <Text style={[styles.text, isMine ? styles.textMine : null]}>{message.text}</Text>
+        <Text style={[styles.time, isMine ? styles.timeMine : null]}>{time}</Text>
       </View>
     </View>
   );
@@ -61,9 +67,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 2,
   },
-  bubbleMine: { borderBottomRightRadius: radius.sm },
+  bubbleMine: {
+    backgroundColor: colors.mine,
+    borderColor: colors.mine,
+    borderBottomRightRadius: radius.sm,
+  },
   bubbleTheirs: { borderBottomLeftRadius: radius.sm },
+  mention: { borderWidth: 2, borderColor: colors.warning },
   author: { ...typography.eyebrow, fontSize: 10 },
+  target: { ...typography.caption, fontSize: 12, fontStyle: 'italic', color: colors.muted },
   text: { ...typography.body, color: colors.ink, lineHeight: 21 },
+  textMine: { color: colors.mineText },
   time: { ...typography.caption, fontSize: 11, color: colors.muted, alignSelf: 'flex-end' },
+  timeMine: { color: '#B9BDB5' },
 });

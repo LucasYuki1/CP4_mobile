@@ -20,3 +20,11 @@ ui-debug.log
 *.keystore
 credentials.json
 *.bak
+
+# Credenciais administrativas - ficam SOMENTE na hospedagem da API
+serviceAccountKey.json
+firebaseAdminCredentials.json
+*-firebase-adminsdk-*.json
+server/.env
+server/dist/
+firestore-debug.log

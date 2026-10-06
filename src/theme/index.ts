@@ -1,9 +1,6 @@
 /**
- * Identidade visual: "balcao".
- * A cor nao decora, ela codifica o papel. Vendedor sempre jade,
- * comprador sempre cobalto, em toda a aplicacao: etiqueta do contato,
- * cabecalho do chat e balao da mensagem. Assim a regra de negocio
- * fica visivel na tela, e nao apenas no codigo.
+ * Identidade visual. A cor codifica o tipo de conversa: individual em jade,
+ * grupo em cobalto, na lista, no cabecalho do chat e nos baloes.
  */
 export const colors = {
   canvas: '#ECEEE8',
@@ -11,12 +8,16 @@ export const colors = {
   ink: '#16181A',
   muted: '#6C7167',
   hairline: '#D6DAD2',
-  seller: '#2F6B4F',
-  sellerSoft: '#E2EDE7',
-  buyer: '#2A4FB8',
-  buyerSoft: '#E1E7F6',
+  direct: '#2F6B4F',
+  directSoft: '#E2EDE7',
+  group: '#2A4FB8',
+  groupSoft: '#E1E7F6',
+  mine: '#16181A',
+  mineText: '#FFFFFF',
   danger: '#A3341F',
   dangerSoft: '#F6E4E0',
+  warning: '#8A5A00',
+  warningSoft: '#FBF0D9',
 } as const;
 
 export const spacing = {
@@ -49,7 +50,7 @@ export const typography = {
   caption: { fontSize: 13, fontWeight: '400' as const },
 } as const;
 
-export const roleColor = {
-  seller: { strong: colors.seller, soft: colors.sellerSoft },
-  buyer: { strong: colors.buyer, soft: colors.buyerSoft },
+export const kindColor = {
+  direct: { strong: colors.direct, soft: colors.directSoft },
+  group: { strong: colors.group, soft: colors.groupSoft },
 } as const;
