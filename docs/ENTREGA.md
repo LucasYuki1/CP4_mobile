@@ -3,9 +3,7 @@
 O código está pronto. Os passos abaixo dependem de contas e credenciais da equipe.
 Siga a ordem e apague este arquivo quando terminar.
 
-1. **Preencher `firebaseConfig.json`.** Troque `apiKey` e `appId` pelos valores do
-   App da Web (Console > Configurações do projeto > Seus apps). Os outros campos já
-   apontam para `cp1-mobile-8bb2a`.
+1. ~~**Preencher `firebaseConfig.json`**~~ (feito).
 2. **Ativar os serviços no Console.** Authentication (somente E-mail/senha),
    Firestore, Storage e Realtime Database (que já existe). Confira também que a
    *Firebase Cloud Messaging API (V1)* está ativa.

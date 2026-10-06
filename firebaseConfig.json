@@ -1,9 +1,9 @@
 {
-  "apiKey": "PREENCHER_COM_A_API_KEY_DO_APP_WEB",
+  "apiKey": "AIzaSyBxZEIm_mF1zkKJrX3vP-a4d8hhYfbBhZ0",
   "authDomain": "cp1-mobile-8bb2a.firebaseapp.com",
   "databaseURL": "https://cp1-mobile-8bb2a-default-rtdb.firebaseio.com",
   "projectId": "cp1-mobile-8bb2a",
   "storageBucket": "cp1-mobile-8bb2a.firebasestorage.app",
   "messagingSenderId": "537149263592",
-  "appId": "PREENCHER_COM_O_APP_ID_DO_APP_WEB"
+  "appId": "1:537149263592:web:81415682ae584130f2035d"
 }
